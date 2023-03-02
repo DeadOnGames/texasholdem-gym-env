@@ -9,7 +9,7 @@ from gym.spaces import Box, Discrete
 from gym import Env
 import numpy as np
 
-class Actions(Enum):
+class actions(Enum):
     FOLD = 0
     CHECK = 1
     CALL = 2
@@ -21,7 +21,7 @@ class Actions(Enum):
     SMALL_BLIND = 7
     BIG_BLIND = 8
 
-class StageEnum(Enum):
+class stage_enum(Enum):
   PREPREFLOP = 0 
   PREFLOP = 1
   FLOP = 2
@@ -48,20 +48,20 @@ class HUNLTH_env(gym.Env):
   def __init__(self,  render_mode=None):
     #define environment
 
-    #self.deck = createDeck()  #Create a new deck of cards at the start of the episode
+    #self.deck = create_deck()  #Create a new deck of cards at the start of the episode
     #self.stage = ...
-    self.handState = [None] * 2 #Slots for cards in hand
-    self.communityCardsState = [None] * 5  #Slots for cards in community pile
+    self.hand_state = [None] * 2 #Slots for cards in hand
+    self.community_cardsState = [None] * 5  #Slots for cards in community pile
 
-    self.moneyPlayer1 = 10000
-    self.moneyPlayer2 = 10000
+    self.money_player_1 = 10000
+    self.money_player_2 = 10000
     self.pot = 0 
     self.rounds = 20
-    self.collected_rewardPlayer1 = 0
+    self.collected_reward_player_1 = 0
     self.dealer = True
 
     # Define action space
-    self.action_space = spaces.Discrete(len(Actions))
+    self.action_space = spaces.Discrete(len(actions))
 
     #Define observation space as a tuple - states are 'slots' not cards
     self.observation_space = spaces.Discrete(10)
@@ -83,7 +83,7 @@ class HUNLTH_env(gym.Env):
     #Translates the environment's state into an observation
 
     #Return tuple
-    return spaces.Tuple(self.handState, self.communityCards, self.moneyPlayer1, self.moneyPlayer2, self.pot)
+    return spaces.Tuple(self.hand_state, self.community_cards, self.money_player_1, self.money_player_2, self.pot)
 
   def reset(self):
     #Assume that reset() is called before step()
@@ -95,11 +95,11 @@ class HUNLTH_env(gym.Env):
       self.dealer = True
 
     # Reset the state of the environment to an initial state
-    self.handState = [None] * 2 #Slots for cards in hand
-    self.communityCardsState = [None] * 5  #Slots for cards in community pile
+    self.hand_state = [None] * 2 #Slots for cards in hand
+    self.community_cardsState = [None] * 5  #Slots for cards in community pile
     self.pot = 0 
-    self.deck = createDeck()
-    self.stage = StageEnum.PREFLOP.value  # 0
+    self.deck = create_deck()
+    self.stage = stage_enum.PREFLOP.value  # 0
     observation = self._get_obs()
 
     return observation
@@ -116,7 +116,7 @@ class HUNLTH_env(gym.Env):
     reward = ...
     # 0 if game still going
     # pot if game won
-    # - moneyPlayer1 if game lost
+    # - money_player_1 if game lost
     
 
     observation = self._get_obs
@@ -128,20 +128,20 @@ class HUNLTH_env(gym.Env):
       #Check dealer status
       if self.dealer:
         if(action == 7):  #SB
-          self.moneyPlayer1 -= 5
+          self.money_player_1 -= 5
           pot += 5
         else:
-          illegalMove()
+          illegal_move()
       else: # Non-dealer posts BB
         if(action == 8):  #BB
-          self.moneyPlayer1 -= 10
+          self.money_player_1 -= 10
           pot += 10
         else:
-          illegalMove()
+          illegal_move()
 
     elif self.stage == 1: #----------------PREFLOP----------------------------------------------------------------
       #Deal hand to each player
-      self.handState = dealHand()
+      self.hand_state = deal_hand()
       #First round of betting (dealer goes first)
       #if(self.dealer == true):
         #if(action == 0):  #FOLD
@@ -153,22 +153,22 @@ class HUNLTH_env(gym.Env):
       #else:
 
     elif self.stage == 3: #----------------FLOP----------------------------------------------------------------
-      dealCards(3)  #Deal 3 community cards
+      deal_cards(3)  #Deal 3 community cards
       #Second round of betting (bb goes first)
 
     elif self.stage == 4: #----------------TURN----------------------------------------------------------------
         #Deal 1 more community card
-      dealCards(1)
+      deal_cards(1)
       #Third round of betting (bb goes first)
 
     elif self.stage == 5: #----------------RIVER----------------------------------------------------------------
         #Deal 1 more community card
-      dealCards(1)
+      deal_cards(1)
       #Forth round of betting (bb goes first)
 
     elif self.stage == 6: #----------------SHOWDOWN----------------------------------------------------------------
       # Check cards 
-      handRankingScore(self.handState, self.communityCardsState)
+      hand_ranking_score(self.hand_state, self.community_cardsState)
       #Compare hand ranking score 
       # Assign reward
 
@@ -204,58 +204,58 @@ class HUNLTH_env(gym.Env):
         print("Player two goes first") 
         
     #Remove money from player currently betting
-    self.moneyPlayer1 -= amount
+    self.money_player_1 -= amount
     #Add money to pot
     self.pot += amount
 
-  def illegalMove():
+  def illegal_move():
     print("Illegal move")
 
-  def handRankingScore(self, hand, cc):
+  def hand_ranking_score(self, hand, cc):
     #Put all cards into an array and prepare for sorting
-    rankingCards = []
+    ranking_cards = []
     for i in hand:
-      rankingCards.append(i)
+      ranking_cards.append(i)
     for c in cc:
-      rankingCards.append(c)
-    #print(rankingCards)
+      ranking_cards.append(c)
+    #print(ranking_cards)
 
     #Separate pips into separate array
     pips = []
-    pips = [x[1] for x in rankingCards]
+    pips = [x[1] for x in ranking_cards]
     #print(pips)
-    pips = self.convertPips(pips)
+    pips = self.convert_pips(pips)
     #print(pips)
 
     #Separate suits into separate array
     suits = []
-    suits = [x[0] for x in rankingCards]
+    suits = [x[0] for x in ranking_cards]
     #print(suits)
     
-    if(self.checkSameSuit(suits)):
-      if(self.checkConsective(pips)):
-        if(self.checkRoyalFlush(pips)):
+    if(self.check_same_suit(suits)):
+      if(self.check_consecutive(pips)):
+        if(self.check_royal_flush(pips)):
           return 'Royal Flush'
 
-  def checkSameSuit(self, suitsArray):
-    if(all(x == suitsArray[0] for x in suitsArray)):   #Check if all cards are same suit
+  def check_same_suit(self, suits_array):
+    if(all(x == suits_array[0] for x in suits_array)):   #Check if all cards are same suit
       return True
     else:
       return False
 
-  def checkConsective(self, pipsArray):
+  def check_consecutive(self, pips_array):
     #Check if cards are sorted numerically
-    intPipsArray = [eval(i) for i in pipsArray]
-    if(sorted(intPipsArray) == list(range(min(intPipsArray), max(intPipsArray)+1))):
+    intpips_array = [eval(i) for i in pips_array]
+    if(sorted(intpips_array) == list(range(min(intpips_array), max(intpips_array)+1))):
       return True
     else:
       return False
 
-  def checkRoyalFlush(self, pipsArray):
+  def check_royal_flush(self, pips_array):
     count = 10
     trueCount = 0
-    for i in range(len(pipsArray)):
-      if (eval(pipsArray[i]) == count):
+    for i in range(len(pips_array)):
+      if (eval(pips_array[i]) == count):
         trueCount = trueCount + 1
         count = count + 1
     
@@ -264,19 +264,19 @@ class HUNLTH_env(gym.Env):
     else:
       return False
 
-  def convertPips(self, pipsArray):
+  def convert_pips(self, pips_array):
     #Check for non-numerical pips
-    if(any(not x.isalpha() for x in pipsArray)):
+    if(any(not x.isalpha() for x in pips_array)):
 
       #Change non-numerical elements into numbers 
-      for i in range(len(pipsArray)):
-        if (pipsArray[i].isalpha()):
-          pipsArray[i] = self.assignNumericalValue(pipsArray[i])
-      return pipsArray
+      for i in range(len(pips_array)):
+        if (pips_array[i].isalpha()):
+          pips_array[i] = self.assign_numerical_value(pips_array[i])
+      return pips_array
     else:
-      return pipsArray
+      return pips_array
   
-  def assignNumericalValue(self, symbol):
+  def assign_numerical_value(self, symbol):
     if(symbol == 'J'):
       return '11'
     elif(symbol == 'Q'):
@@ -286,13 +286,13 @@ class HUNLTH_env(gym.Env):
     elif(symbol == 'A'):
       return '14'
 
-  def createDeck(self):
+  def create_deck(self):
     for suit in SUITS:
         for pip in PIPS:
             card = (suit,pip)
             deck.append(card)
   
-  def dealHand(self):
+  def deal_hand(self):
     hand = []
     for i in range(2):
       card = random.choice(deck)
@@ -300,17 +300,17 @@ class HUNLTH_env(gym.Env):
       hand.append(card)
     return hand
 
-  def dealCards(self, numCards):
-    communityCards = []
+  def deal_cards(self, numCards):
+    community_cards = []
     for i in range(numCards):
       #pip, suit = takeCardFromDeck()
       card = random.choice(deck)
       deck.remove(card)
-      communityCards.append(card)
-    return communityCards
+      community_cards.append(card)
+    return community_cards
       
 
-  def dealEntireDeck(self):
+  def deal_entire_deck(self):
     for i in range(13):
         for j in range(4):
             #pip,suit = takeCardFromDeck()
@@ -320,6 +320,6 @@ class HUNLTH_env(gym.Env):
             print(suit + pip, end = " ")
         print()
 
-#createDeck()
-#dealEntireDeck()
+#create_deck()
+#deal_entire_deck()
 
