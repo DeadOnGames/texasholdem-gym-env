@@ -8,6 +8,7 @@ from gym import spaces
 from gym.spaces import Box, Discrete
 from gym import Env
 import numpy as np
+from collections import Counter
 
 class actions(Enum):
     FOLD = 0
@@ -236,6 +237,45 @@ class HUNLTH_env(gym.Env):
       if(self.check_consecutive(pips)):
         if(self.check_royal_flush(pips)):
           return 'Royal Flush'
+        else: 
+          return 'Straight Flush'
+      else:
+        return 'Flush'
+    else:
+      if(self.check_consecutive(pips)):
+        return 'Straight'
+      else:
+        if(self.get_duplicates(pips) == [4]):
+          return "Four of a kind"
+        elif(self.get_duplicates(pips) == [3,2] or self.get_duplicates(pips) == [2,3]):
+          return "Full House"
+        elif(self.get_duplicates(pips) == [3]):
+          return "Three of a kind"
+        elif(self.get_duplicates(pips) == [2,2]):
+          return "Two pair"
+        elif(self.get_duplicates(pips) == [2]):
+          return "Pair"
+        else:
+          return 'High Card'
+
+  def check_duplicates(self, pips_array):
+    a = dict(Counter(pips_array)) #E.g. {'2': 2, '12': 2, '13': 1}
+    b = dict()
+    for x, y in a.items():
+      if(int(y) >= 2):
+        b[x] = y
+    if(len(b) == 0):
+      return False
+    else:
+      return True
+    
+  def get_duplicates(self, pips_array):
+    a = dict(Counter(pips_array))
+    count = []
+    for x, y in a.items():
+      if(int(y) >= 2):
+        count.append(y)
+    return count 
 
   def check_same_suit(self, suits_array):
     if(all(x == suits_array[0] for x in suits_array)):   #Check if all cards are same suit
