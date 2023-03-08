@@ -35,56 +35,72 @@ class TestHUNLenv(unittest.TestCase):
     def test_check_Royal_Flush_success(self):
         test_hand = [('♦', '10'),('♦', 'J')]    #10♦, J♦
         test_cc = [('♦', 'Q'),('♦', 'K'),('♦', 'A')]        #Q♦, K♦, A♦
-        sc = env.hand_ranking_score(test_hand, test_cc)
-        assert_that(sc, equal_to('Royal Flush'))
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('royal_flush'))
+        assert_that(y, equal_to(60))
 
     def test_hand_ranking_straight_flush_success(self):
         test_hand = [('♦', '2'),('♦', '3')]    
         test_cc = [('♦', '5'),('♦', '4'),('♦', '6')]        
-        sc = env.hand_ranking_score(test_hand, test_cc)
-        assert_that(sc, equal_to('Straight Flush'))
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('straight_flush'))
+        assert_that(y, equal_to(20))
 
     def test_hand_ranking_straight_success(self):
         test_hand = [('♦', '2'),('♠', '3')]    
-        test_cc = [('♥', '5'),('♦', '4'),('♣', '6')]        
-        sc = env.hand_ranking_score(test_hand, test_cc)
-        assert_that(sc, equal_to('Straight'))
+        test_cc = [('♥', '5'),('♦', '4'),('♣', '6')] 
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('straight'))
+        assert_that(y, equal_to(20))
 
     def test_hand_ranking_flush_success(self):
         test_hand = [('♦', '4'),('♦', 'Q')]    
         test_cc = [('♦', '5'),('♦', 'K'),('♦', '6')]        
-        sc = env.hand_ranking_score(test_hand, test_cc)
-        assert_that(sc, equal_to('Flush'))
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('flush'))
+        assert_that(y, equal_to(40))
 
     def test_hand_ranking_four_kind_success(self):
-        hand = [('♥', '5'),('♥', '5')]
-        cc = [('♦', '5'),('♠', '5'),('♥', '7')]  
-        assert_that(env.hand_ranking_score(hand, cc), equal_to('Four of a kind'))
+        test_hand = [('♥', '5'),('♥', '5')]
+        test_cc = [('♦', '5'),('♠', '5'),('♥', '7')]  
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('four_of_a_kind'))
+        assert_that(y, equal_to(20))
 
     def test_hand_ranking_full_house_success(self):
-        hand = [('♥', '5'),('♥', '5')]
-        cc = [('♦', '7'),('♠', '7'),('♥', '7')]  
-        assert_that(env.hand_ranking_score(hand, cc), equal_to('Full House'))
+        test_hand = [('♥', '5'),('♥', '5')]
+        test_cc = [('♦', '7'),('♠', '7'),('♥', '7')]  
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('full_house'))
+        assert_that(y, equal_to(31))
 
     def test_hand_ranking_three_kind_success(self):
-        hand = [('♥', '4'),('♥', '5')]
-        cc = [('♦', '7'),('♠', '7'),('♥', '7')]  
-        assert_that(env.hand_ranking_score(hand, cc), equal_to('Three of a kind'))
+        test_hand = [('♥', '4'),('♥', '5')]
+        test_cc = [('♦', '7'),('♠', '7'),('♥', '7')]  
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('three_of_a_kind'))
+        assert_that(y, equal_to(21))
 
     def test_hand_ranking_two_pair_success(self):
-        hand = [('♥', '4'),('♥', '5')]
-        cc = [('♦', '5'),('♠', '7'),('♥', '7')]  
-        assert_that(env.hand_ranking_score(hand, cc), equal_to('Two pair'))
+        test_hand = [('♥', '4'),('♥', '5')]
+        test_cc = [('♦', '5'),('♠', '7'),('♥', '7')]  
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('two_pair'))
+        assert_that(y, equal_to(24))
 
     def test_hand_ranking_pair_success(self):
-        hand = [('♥', '4'),('♥', '5')]
-        cc = [('♦', 'Q'),('♠', 'Q'),('♥', '7')]  
-        assert_that(env.hand_ranking_score(hand, cc), equal_to('Pair'))
+        test_hand = [('♥', '4'),('♥', '5')]
+        test_cc = [('♦', 'Q'),('♠', 'Q'),('♥', '7')]  
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('pair'))
+        assert_that(y, equal_to(24))
     
-    def test_hand_ranking_pair_success(self):
-        hand = [('♥', '2'),('♥', '5')]
-        cc = [('♦', '4'),('♠', 'Q'),('♥', '7')]  
-        assert_that(env.hand_ranking_score(hand, cc), equal_to('High Card'))
+    def test_hand_ranking_high_card_success(self):
+        test_hand = [('♥', '2'),('♥', '5')]
+        test_cc = [('♦', '4'),('♠', 'Q'),('♥', '7')]  
+        x, y = env.hand_ranking_score(test_hand, test_cc)
+        assert_that(x, equal_to('high_card'))
+        assert_that(y, equal_to(12))
 
     def test_convert_pips(self):
         pips = ['Q', '10', 'J', 'Q', 'K']
@@ -103,16 +119,11 @@ class TestHUNLenv(unittest.TestCase):
     def test_check_duplicates_success(self):
         pips = ['2', '2', 'Q', 'Q', 'K']
         num_pips = env.convert_pips(pips)
-        assert_that(env.check_duplicates(num_pips), equal_to(True))
+        assert_that(env.check_duplicates_score(num_pips), equal_to(28))
     
     def test_get_duplicates(self):
         pips = ['2', '2', '3', '3', '4']
         assert_that(env.get_duplicates(pips), equal_to([2,2]))
-
-    def test_check_duplicates_fail(self):
-        pips = ['3', '2', 'J', 'Q', 'K']
-        num_pips = env.convert_pips(pips)
-        assert_that(env.check_duplicates(num_pips), equal_to(False))
 
 if __name__ == '__main__':
     unittest.main()
