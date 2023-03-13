@@ -9,7 +9,7 @@ from hamcrest import assert_that, equal_to
 #Create an instance of the HUNLTH environment
 env = gym.make('gym_examples/HUNLTH-v0')
 
-class TestHUNLenv(unittest.TestCase):
+class TestHUNLenv_showdown(unittest.TestCase):
 
     def test_deal_hand(self):
         env.create_deck()

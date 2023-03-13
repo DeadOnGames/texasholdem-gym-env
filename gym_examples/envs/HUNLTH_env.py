@@ -60,6 +60,7 @@ class HUNLTH_env(gym.Env):
     self.collected_reward_player_1 = 0
     self.dealer = True
     self.terminated = False
+    self.big_blind = 0
 
     # Define action space
     self.action_space = spaces.Discrete(len(actions))
@@ -75,9 +76,11 @@ class HUNLTH_env(gym.Env):
 
   def _get_obs(self):
     #Translates the environment's state into an observation
-
-    #Return tuple
-    return spaces.Tuple(self.hand_state, self.community_cards, self.money_player_1, self.money_player_2, self.pot)
+    return self.hand_state, self.community_cardsState, self.money_player_1, self.money_player_2, self.pot
+  
+  def __get_info(self):
+    #Return some aribrariy info for debugging
+    return {"stage": self.stage, "hand": self.hand_state, "Player 1 money": self.money_player_1}
 
   def reset(self):
     #Assume that reset() is called before step()
@@ -107,17 +110,20 @@ class HUNLTH_env(gym.Env):
     # Terminated signal to signify the end of the game
     # Games ends if either player fold, or after showdown
 
-    if(self.terminated and won): # pot if game won
-      reward = self.pot                 
-    elif(self.terminated and not won):  # - money_player_1 if game lost
-      reward = 1 - self.money_player_1  
-    else:  # 0 if game still going
-      reward = 0                       
+    #if(self.terminated and self.won): # pot if game won
+    #  reward = self.pot                 
+    #elif(self.terminated and not won):  # - money_player_1 if game lost
+    #  reward = 1 - self.money_player_1  
+    #else:  # 0 if game still going
+    reward = 0                       
 
     observation = self._get_obs
-    return observation, reward, terminated, False, info
+    info = self.__get_info()
+    return observation, reward, self.terminated, False, info
 
   def _take_action(self, action):
+
+    a = [2,3,4,5,6] #Array to handle betting action indexes
 
     if self.stage == 0: #----------------PREPREFLOP----------------------------------------------------------------
       #Check dealer status
@@ -141,11 +147,11 @@ class HUNLTH_env(gym.Env):
       #First round of betting (dealer goes first)
       if(self.dealer == True):
         if(action == 0):  #FOLD
-          self.gameOver()
+          self.game_over()
         elif(action == 1):  #CHECK
           #Wait for opponent]
           print()
-        elif(action == 2 or 3 or 4 or 5 or 6):
+        elif(action in a):
           self.bet(action)
         else:
           self.illegal_move()
@@ -155,11 +161,11 @@ class HUNLTH_env(gym.Env):
       #Second round of betting (bb goes first)
       if(self.dealer == False):
         if(action == 0):  #FOLD
-          self.gameOver()
+          self.game_over()
         elif(action == 1):  #CHECK
           #Wait for opponent
           print()
-        elif(action == 2 or 3 or 4 or 5 or 6):
+        elif(action in a):
           self.bet(action)
         else:
           self.illegal_move()
@@ -170,11 +176,11 @@ class HUNLTH_env(gym.Env):
       #Third round of betting (bb goes first)
       if(self.dealer == False):
         if(action == 0):  #FOLD
-          self.gameOver()
+          self.game_over()
         elif(action == 1):  #CHECK
           #Wait for opponent
           print()
-        elif(action == 2 or 3 or 4 or 5 or 6):
+        elif(action in a):
           self.bet(action)
         else:
           self.illegal_move()
@@ -188,21 +194,36 @@ class HUNLTH_env(gym.Env):
       #Compare hand ranking score 
       # Assign reward
 
-  def bet(self, action):
-    if(self.dealer == True  and self.stage == 2):    #If player is dealer during pre-flop
+  def bet_handler(self, action):  #Called if action 2,3,4,5 or 6 are used
+    #if(self.dealer == True  and self.stage == 1):    #If player is dealer during pre-flop
         #PlayerOne goes first
-        print("Player one goes first") 
-    elif(self.dealer == False and self.stage >= 3):   #If player is bb during flop, turn or river
+    #    print("Player one goes first")
+    #elif(self.dealer == False and self.stage >= 2):   #If player is bb during flop, turn or river
         #Player 1 goes first 
-        print("Player one goes first") 
-    else:
+    #    print("Player one goes first") 
+    #else:
         #Player 2 goes first 
-        print("Player two goes first") 
+    #    print("Player two goes first") 
         
-    #Remove money from player currently betting
-    self.money_player_1 -= amount
+    if(action == 2): #Call
+      self.bet(-1)      #Need to hook up to player 2 
+    elif(action == 3): #RASIE_3BB
+      self.bet(self.big_blind * 3)
+    elif(action == 4): #RAISE_HALF_POT
+      self.bet(self.pot * 0.5)
+    elif(action == 5):  #RAISE_POT
+      self.bet(self.pot * 2)
+    elif(action == 6):  #RASIE_2POT
+      self.bet(self.pot * 2)
+    elif(action == 7): #ALL_IN
+      self.bet(self.money_player_1)
+
+    
+  def bet(self, amount):
     #Add money to pot
-    self.pot += amount
+      self.pot += amount
+      #Remove money from player currently betting
+      self.money_player_1 -= amount
 
   def game_over(self):
     self.terminated = True
