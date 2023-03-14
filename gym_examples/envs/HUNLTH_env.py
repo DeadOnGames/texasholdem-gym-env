@@ -85,18 +85,12 @@ class HUNLTH_env(gym.Env):
   def reset(self):
     #Assume that reset() is called before step()
 
-    #Alternate the dealer
-    if self.dealer:
-      self.dealer = False
-    else :
-      self.dealer = True
-
     # Reset the state of the environment to an initial state
     self.hand_state = [None] * 2 #Slots for cards in hand
     self.community_cardsState = [None] * 5  #Slots for cards in community pile
     self.pot = 0 
     self.deck = self.create_deck()
-    self.stage = stage_enum.PREFLOP.value  # 0
+    self.stage = stage_enum.PREPREFLOP.value  # 0
     observation = self._get_obs()
 
     return observation
@@ -130,13 +124,13 @@ class HUNLTH_env(gym.Env):
       if self.dealer:
         if(action == 7):  #SB
           self.money_player_1 -= 5
-          pot += 5
+          self.pot += 5
         else:
           self.illegal_move()
       else: # Non-dealer posts BB
         if(action == 8):  #BB
           self.money_player_1 -= 10
-          pot += 10
+          self.pot += 10
         else:
           self.illegal_move()
 
@@ -229,7 +223,7 @@ class HUNLTH_env(gym.Env):
     self.terminated = True
 
   def illegal_move(self):
-    print("Illegal move")
+    return "Illegal move"
 
   def hand_ranking_score(self, hand, cc):
     #Put all cards into an array and prepare for sorting
@@ -392,6 +386,9 @@ class HUNLTH_env(gym.Env):
             pip, suit = card
             print(suit + pip, end = " ")
         print()
+  
+  def set_dealer(self, bool):
+    self.dealer = bool
 
 #create_deck()
 #deal_entire_deck()
