@@ -14,7 +14,6 @@ class actions(Enum):
     FOLD = 0
     CHECK = 1
     CALL = 2
-    RAISE_3BB = 3
     RAISE_HALF_POT = 3
     RAISE_POT = 4
     RAISE_2POT = 5
@@ -61,6 +60,7 @@ class HUNLTH_env(gym.Env):
     self.dealer = True
     self.terminated = False
     self.big_blind = 0
+    self.stage_complete = False
 
     # Define action space
     self.action_space = spaces.Discrete(len(actions))
@@ -91,6 +91,7 @@ class HUNLTH_env(gym.Env):
     self.pot = 0 
     self.deck = self.create_deck()
     self.stage = stage_enum.PREPREFLOP.value  # 0
+    self.stage_complete = False
     observation = self._get_obs()
 
     return observation
@@ -98,7 +99,10 @@ class HUNLTH_env(gym.Env):
   def step(self, action):
     # Execute one time step within the environment
     self._take_action(action)
-    self.stage += 1
+
+    if(self.stage_complete):
+      self.stage += 1
+      self.stage_complete = False
 
     #terminated = 
     # Terminated signal to signify the end of the game
@@ -125,14 +129,18 @@ class HUNLTH_env(gym.Env):
         if(action == 7):  #SB
           self.money_player_1 -= 5
           self.pot += 5
+          self.stage_complete = True
         else:
           self.illegal_move()
+          self.stage_complete = False
       else: # Non-dealer posts BB
         if(action == 8):  #BB
           self.money_player_1 -= 10
           self.pot += 10
+          self.stage_complete = True
         else:
           self.illegal_move()
+          self.stage_complete = False
 
     elif self.stage == 1: #----------------PREFLOP----------------------------------------------------------------
       #Deal hand to each player
@@ -142,13 +150,17 @@ class HUNLTH_env(gym.Env):
       if(self.dealer == True):
         if(action == 0):  #FOLD
           self.game_over()
+          self.stage_complete = True
         elif(action == 1):  #CHECK
           #Wait for opponent]
           print()
+          self.stage_complete = False
         elif(action in a):
-          self.bet(action)
+          self.bet_handler(action)
+          self.stage_complete = True
         else:
           self.illegal_move()
+          self.stage_complete = False
 
     elif self.stage == 3: #----------------FLOP----------------------------------------------------------------
       self.deal_cards(3)  #Deal 3 community cards
@@ -156,13 +168,17 @@ class HUNLTH_env(gym.Env):
       if(self.dealer == False):
         if(action == 0):  #FOLD
           self.game_over()
+          self.stage_complete = True
         elif(action == 1):  #CHECK
           #Wait for opponent
           print()
+          self.stage_complete = False
         elif(action in a):
-          self.bet(action)
+          self.bet_handler(action)
+          self.stage_complete = True
         else:
           self.illegal_move()
+          self.stage_complete = False
 
     elif self.stage == 4 or 5: #----------------TURN / RIVER ---------------------------------------------------------
         #Deal 1 more community card
@@ -171,17 +187,22 @@ class HUNLTH_env(gym.Env):
       if(self.dealer == False):
         if(action == 0):  #FOLD
           self.game_over()
+          self.stage_complete = True
         elif(action == 1):  #CHECK
           #Wait for opponent
           print()
+          self.stage_complete = False
         elif(action in a):
-          self.bet(action)
+          self.bet_handler(action)
+          self.stage_complete = True
         else:
           self.illegal_move()
+          self.stage_complete = False
 
     elif self.stage == 6: #----------------SHOWDOWN----------------------------------------------------------------
       # Check cards 
       hand_rank = self.hand_ranking_score(self.hand_state, self.community_cardsState)
+      self.stage_complete = True
       #if player1 hand_rank == player2 hand_rank:
         #Calculate inter-hand ranking
 
@@ -189,27 +210,16 @@ class HUNLTH_env(gym.Env):
       # Assign reward
 
   def bet_handler(self, action):  #Called if action 2,3,4,5 or 6 are used
-    #if(self.dealer == True  and self.stage == 1):    #If player is dealer during pre-flop
-        #PlayerOne goes first
-    #    print("Player one goes first")
-    #elif(self.dealer == False and self.stage >= 2):   #If player is bb during flop, turn or river
-        #Player 1 goes first 
-    #    print("Player one goes first") 
-    #else:
-        #Player 2 goes first 
-    #    print("Player two goes first") 
-        
+  
     if(action == 2): #Call
       self.bet(-1)      #Need to hook up to player 2 
-    elif(action == 3): #RASIE_3BB
-      self.bet(self.big_blind * 3)
-    elif(action == 4): #RAISE_HALF_POT
+    elif(action == 3): #RAISE_HALF_POT
       self.bet(self.pot * 0.5)
-    elif(action == 5):  #RAISE_POT
+    elif(action == 4):  #RAISE_POT
       self.bet(self.pot * 2)
-    elif(action == 6):  #RASIE_2POT
+    elif(action == 5):  #RAISE_2POT
       self.bet(self.pot * 2)
-    elif(action == 7): #ALL_IN
+    elif(action == 6): #ALL_IN
       self.bet(self.money_player_1)
 
     
