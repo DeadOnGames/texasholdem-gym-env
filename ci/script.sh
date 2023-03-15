@@ -18,5 +18,5 @@ cd open-codegen
 
     # --- run the tests    
     export PYTHONPATH=.
-    python -W ignore tests/TestHUNLenv_actions.py -v    
-    python -W ignore tests/TestHUNLenv_showdown.py -v
+    python -W ignore gym_examples/tests/TestHUNLenv_actions.py -v    
+    python -W ignore gym_examples/tests/TestHUNLenv_showdown.py -v
