@@ -142,9 +142,10 @@ class HUNLTH_env(gym.Env):
           self.illegal_move()
           self.stage_complete = False
 
-    elif self.stage == 1: #----------------PREFLOP----------------------------------------------------------------
       #Deal hand to each player
       self.hand_state = self.deal_hand()
+
+    elif self.stage == 1: #----------------PREFLOP----------------------------------------------------------------
 
       #First round of betting (dealer goes first)
       if(self.dealer == True):
@@ -399,6 +400,36 @@ class HUNLTH_env(gym.Env):
   
   def set_dealer(self, bool):
     self.dealer = bool
+
+  def render(self):
+    if(self.hand_state != ([None] * 2)):
+      for i in self.hand_state:
+        self.card_render_formatter(i)
+  
+  def card_render_formatter(self, card):
+    suit, pip = card
+    lines = [[] for i in range(9)]
+    space = ' '
+
+    # add the individual card on a line by line basis
+    lines[0].append('┌─────────┐')
+    lines[1].append('│{}{}       │'.format(suit, space))  # use two {} one for char, one for space or char
+    lines[2].append('│         │')
+    lines[3].append('│         │')
+    lines[4].append('│    {}    │'.format(pip))
+    lines[5].append('│         │')
+    lines[6].append('│         │')
+    lines[7].append('│       {}{}│'.format(space, suit))
+    lines[8].append('└─────────┘')
+
+    result = []
+    for index, line in enumerate(lines):
+        result.append(''.join(lines[index]))
+
+    for i in result:
+      print(i + '\n')
+
+
 
 #create_deck()
 #deal_entire_deck()
