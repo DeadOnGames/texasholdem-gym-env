@@ -402,6 +402,9 @@ class HUNLTH_env(gym.Env):
     self.dealer = bool
 
   def render(self):
+    if(self.community_cardsState != ([None] * 5)):
+      for i in self.community_cardsState:
+        self.card_render_formatter(i)
     if(self.hand_state != ([None] * 2)):
       for i in self.hand_state:
         self.card_render_formatter(i)

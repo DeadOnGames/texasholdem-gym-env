@@ -18,5 +18,5 @@ cd open-codegen
 
     # --- run the tests    
     export PYTHONPATH=.
-    python -W ignore test/test_constraints.py -v    
-    python -W ignore test/test.py -v
+    python -W ignore tests/TestHUNLenv_actions.py -v    
+    python -W ignore tests/TestHUNLenv_showdown.py -v
