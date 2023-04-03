@@ -163,8 +163,8 @@ class HUNLTH_env(gym.Env):
           self.illegal_move()
           self.stage_complete = False
 
-    elif self.stage == 3: #----------------FLOP----------------------------------------------------------------
-      self.deal_cards(3)  #Deal 3 community cards
+    elif self.stage == 2: #----------------FLOP----------------------------------------------------------------
+      self.community_cardsState = self.deal_cards(3)  #Deal 3 community cards
       #Second round of betting (bb goes first)
       if(self.dealer == False):
         if(action == 0):  #FOLD
@@ -181,7 +181,7 @@ class HUNLTH_env(gym.Env):
           self.illegal_move()
           self.stage_complete = False
 
-    elif self.stage == 4 or 5: #----------------TURN / RIVER ---------------------------------------------------------
+    elif self.stage == 3 or 4: #----------------TURN / RIVER ---------------------------------------------------------
         #Deal 1 more community card
       self.deal_cards(1)
       #Third round of betting (bb goes first)
@@ -200,7 +200,7 @@ class HUNLTH_env(gym.Env):
           self.illegal_move()
           self.stage_complete = False
 
-    elif self.stage == 6: #----------------SHOWDOWN----------------------------------------------------------------
+    elif self.stage == 5: #----------------SHOWDOWN----------------------------------------------------------------
       # Check cards 
       hand_rank = self.hand_ranking_score(self.hand_state, self.community_cardsState)
       self.stage_complete = True
@@ -403,26 +403,31 @@ class HUNLTH_env(gym.Env):
 
   def render(self):
     if(self.community_cardsState != ([None] * 5)):
+      print("Community cards:")
       for i in self.community_cardsState:
         self.card_render_formatter(i)
     if(self.hand_state != ([None] * 2)):
+      print("Player_X hand:")
       for i in self.hand_state:
         self.card_render_formatter(i)
   
   def card_render_formatter(self, card):
     suit, pip = card
     lines = [[] for i in range(9)]
-    space = ' '
 
+    if(len(pip) > 1):
+      space = ''
+    else:
+      space = ' '
     # add the individual card on a line by line basis
     lines[0].append('┌─────────┐')
-    lines[1].append('│{}{}       │'.format(suit, space))  # use two {} one for char, one for space or char
+    lines[1].append('│{}{}       │'.format(pip, space))  # use two {} one for char, one for space or char
     lines[2].append('│         │')
     lines[3].append('│         │')
-    lines[4].append('│    {}    │'.format(pip))
+    lines[4].append('│    {}    │'.format(suit))
     lines[5].append('│         │')
     lines[6].append('│         │')
-    lines[7].append('│       {}{}│'.format(space, suit))
+    lines[7].append('│       {}{}│'.format(space, pip))
     lines[8].append('└─────────┘')
 
     result = []
@@ -430,7 +435,8 @@ class HUNLTH_env(gym.Env):
         result.append(''.join(lines[index]))
 
     for i in result:
-      print(i + '\n')
+      #print(i + '\n')
+      print(i)
 
 
 
