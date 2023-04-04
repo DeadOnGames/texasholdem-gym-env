@@ -49,7 +49,9 @@ class HUNLTH_env(gym.Env):
 
     #self.deck = create_deck()  #Create a new deck of cards at the start of the episode
     #self.stage = ...
+
     self.hand_state = [None] * 2 #Slots for cards in hand
+    self.p2_hand_state = [None] * 2 #Slots for cards in hand
     self.community_cardsState = [None] * 5  #Slots for cards in community pile
 
     self.money_player_1 = 10000
@@ -61,6 +63,12 @@ class HUNLTH_env(gym.Env):
     self.terminated = False
     self.big_blind = 0
     self.stage_complete = False
+    self.p2_stage_complete = False
+    self.reward = 0
+    self.won = False
+    self.player_num = 1
+    self.bet_amount = 0
+    self.p2_bet_amount = 0
 
     # Define action space
     self.action_space = spaces.Discrete(len(actions))
@@ -87,39 +95,40 @@ class HUNLTH_env(gym.Env):
 
     # Reset the state of the environment to an initial state
     self.hand_state = [None] * 2 #Slots for cards in hand
+    self.p2_hand_state = [None] * 2 #Slots for cards in hand
     self.community_cardsState = [None] * 5  #Slots for cards in community pile
     self.pot = 0 
     self.deck = self.create_deck()
     self.stage = stage_enum.PREPREFLOP.value  # 0
     self.stage_complete = False
+    self.p2_stage_complete = False
+    self.reward = 0
+    self.won = False
     observation = self._get_obs()
 
     return observation
 
   def step(self, action):
     # Execute one time step within the environment
-    self._take_action(action)
+    self._take_action(self.player_num, action)
 
-    if(self.stage_complete):
+    if(self.stage_complete and self.p2_stage_complete):
       self.stage += 1
       self.stage_complete = False
+      self.p2_stage_complete = False
 
-    #terminated = 
-    # Terminated signal to signify the end of the game
-    # Games ends if either player fold, or after showdown
-
-    #if(self.terminated and self.won): # pot if game won
-    #  reward = self.pot                 
-    #elif(self.terminated and not won):  # - money_player_1 if game lost
-    #  reward = 1 - self.money_player_1  
-    #else:  # 0 if game still going
-    reward = 0                       
+    if(self.terminated and self.won): # pot if game won
+      reward = self.pot                 
+    elif(self.terminated and not self.won):  # - money_player_1 if game lost
+      reward = 1 - self.money_player_1  
+    else:  # 0 if game still going
+      reward = 0    
 
     observation = self._get_obs
     info = self.__get_info()
     return observation, reward, self.terminated, False, info
 
-  def _take_action(self, action):
+  def _take_action(self, player_num, action):
 
     a = [2,3,4,5,6] #Array to handle betting action indexes
 
@@ -129,39 +138,40 @@ class HUNLTH_env(gym.Env):
         if(action == 7):  #SB
           self.money_player_1 -= 5
           self.pot += 5
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
       else: # Non-dealer posts BB
         if(action == 8):  #BB
           self.money_player_1 -= 10
           self.pot += 10
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
 
       #Deal hand to each player
       self.hand_state = self.deal_hand()
+      self.p2_hand_state = self.deal_hand()
 
     elif self.stage == 1: #----------------PREFLOP----------------------------------------------------------------
 
       #First round of betting (dealer goes first)
-      if(self.dealer == True):
+      #if(self.dealer == True):
         if(action == 0):  #FOLD
           self.game_over()
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         elif(action == 1):  #CHECK
-          #Wait for opponent]
+          #Wait for opponent
           print()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
         elif(action in a):
           self.bet_handler(action)
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
 
     elif self.stage == 2: #----------------FLOP----------------------------------------------------------------
       self.community_cardsState = self.deal_cards(3)  #Deal 3 community cards
@@ -169,17 +179,17 @@ class HUNLTH_env(gym.Env):
       if(self.dealer == False):
         if(action == 0):  #FOLD
           self.game_over()
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         elif(action == 1):  #CHECK
           #Wait for opponent
           print()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
         elif(action in a):
           self.bet_handler(action)
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
 
     elif self.stage == 3 or 4: #----------------TURN / RIVER ---------------------------------------------------------
         #Deal 1 more community card
@@ -188,32 +198,58 @@ class HUNLTH_env(gym.Env):
       if(self.dealer == False):
         if(action == 0):  #FOLD
           self.game_over()
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         elif(action == 1):  #CHECK
           #Wait for opponent
           print()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
         elif(action in a):
           self.bet_handler(action)
-          self.stage_complete = True
+          self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
-          self.stage_complete = False
+          self.set_stage_complete(player_num, False)
 
     elif self.stage == 5: #----------------SHOWDOWN----------------------------------------------------------------
       # Check cards 
-      hand_rank = self.hand_ranking_score(self.hand_state, self.community_cardsState)
-      self.stage_complete = True
-      #if player1 hand_rank == player2 hand_rank:
-        #Calculate inter-hand ranking
+      hand_type, hand_sc = self.hand_ranking_score(self.hand_state, self.community_cardsState)
+      p2_hand_type, p2_hand_sc = self.hand_ranking_score(self.p2_hand_state, self.community_cardsState)
+      if(hand_type == p2_hand_type):
+        #Compare inter-hand ranking
+        if(hand_sc > p2_hand_sc):
+          self.won = True
+        else:
+          self.won = False
+          
+        self.set_stage_complete(player_num, True)
+      else:
+        #Cards are not the same rank, work out who won
+        p1_score = self.rank_hand_types(self, hand_type)
+        p2_score = self.rank_hand_types(self, p2_hand_type)
+        if(p1_score > p2_score):
+          self.won = True
+        else:
+          self.won = False
 
-      #Compare hand ranking score 
       # Assign reward
+      self.terminated = True
+      self.set_stage_complete(player_num, True)
+
+  def set_player_num(self, no):
+    self.player_num = no
+
+  def set_stage_complete(self, player_num, bool):
+    if(player_num == 1):
+      self.stage_complete = bool
+    else:
+      self.p2_stage_complete = bool
 
   def bet_handler(self, action):  #Called if action 2,3,4,5 or 6 are used
-  
     if(action == 2): #Call
-      self.bet(-1)      #Need to hook up to player 2 
+      if(self.player_num == 1):
+        self.bet(self.p2_bet_amount)
+      else: #Player_num == 2
+        self.bet(self.bet_amount)
     elif(action == 3): #RAISE_HALF_POT
       self.bet(self.pot * 0.5)
     elif(action == 4):  #RAISE_POT
@@ -223,12 +259,18 @@ class HUNLTH_env(gym.Env):
     elif(action == 6): #ALL_IN
       self.bet(self.money_player_1)
 
-    
   def bet(self, amount):
+    #Record money being bet (in case of calls)
+    if(self.player_num == 1):
+      self.bet_amount = amount
+    else:
+      self.p2_bet_amount = amount
+
     #Add money to pot
-      self.pot += amount
-      #Remove money from player currently betting
-      self.money_player_1 -= amount
+    self.pot += amount
+
+    #Remove money from player currently betting
+    self.money_player_1 -= amount
 
   def game_over(self):
     self.terminated = True
@@ -365,6 +407,34 @@ class HUNLTH_env(gym.Env):
     else:
       return self.check_duplicates_score(pips_array) #Hands with duplicates
 
+  def rank_hand_types(self, hand_rank):
+    score = 0
+
+    if(hand_rank =='royal_flush'): 
+      score = 10
+    elif(hand_rank =='straight_flush'): 
+      score = 9
+    elif(hand_rank =='flush'): 
+      score = 8
+    elif(hand_rank =='straight'): 
+      score = 7
+    elif(hand_rank =='four_of_a_kind'): 
+      score = 6
+    elif(hand_rank =='full_house'): 
+      score = 5
+    elif(hand_rank =='three_of_a_kind'): 
+      score = 4
+    elif(hand_rank =='two_pair'): 
+      score = 3
+    elif(hand_rank =='pair'): 
+      score = 2
+    elif(hand_rank =='high_card'): 
+      score = 1
+    
+    return score
+
+
+
   def create_deck(self):
     for suit in SUITS:
         for pip in PIPS:
@@ -402,14 +472,24 @@ class HUNLTH_env(gym.Env):
     self.dealer = bool
 
   def render(self):
-    if(self.community_cardsState != ([None] * 5)):
-      print("Community cards:")
-      for i in self.community_cardsState:
-        self.card_render_formatter(i)
-    if(self.hand_state != ([None] * 2)):
-      print("Player_X hand:")
-      for i in self.hand_state:
-        self.card_render_formatter(i)
+    if(self.terminated):
+      if(self.won):
+        print("Player 1 wins!")
+      else:
+        print("player 2 wins")
+    else:
+      if(self.community_cardsState != ([None] * 5)):
+        print("Community cards:")
+        for i in self.community_cardsState:
+          self.card_render_formatter(i)
+      if(self.hand_state != ([None] * 2)):
+        print("Player 1 hand:")
+        for i in self.hand_state:
+          self.card_render_formatter(i)
+      if(self.p2_hand_state != ([None] * 2)):
+        print("Player 2 hand:")
+        for i in self.p2_hand_state:
+          self.card_render_formatter(i)
   
   def card_render_formatter(self, card):
     suit, pip = card
@@ -438,8 +518,4 @@ class HUNLTH_env(gym.Env):
       #print(i + '\n')
       print(i)
 
-
-
-#create_deck()
-#deal_entire_deck()
 

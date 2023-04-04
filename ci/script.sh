@@ -20,3 +20,4 @@ cd open-codegen
     export PYTHONPATH=.
     python -W ignore gym_examples/tests/TestHUNLenv_actions.py -v    
     python -W ignore gym_examples/tests/TestHUNLenv_showdown.py -v
+    python -W ignore gym_examples/tests/TestHUNLenv_two_players.py -v
