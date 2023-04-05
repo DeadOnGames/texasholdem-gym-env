@@ -495,6 +495,8 @@ class HUNLTH_env(gym.Env):
     if(self.terminated):
       if(self.won):
         print("Player 1 wins!")
+        print("Reward = £")
+        print(self.reward)
       else:
         print("player 2 wins")
     else:

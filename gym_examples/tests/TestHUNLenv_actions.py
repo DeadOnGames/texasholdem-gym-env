@@ -12,12 +12,25 @@ env = gym.make('gym_examples/HUNLTH-v0')
 class TestHUNLenv_actions(unittest.TestCase):
     
     def test_fold_game_over_preflop(self):
+        #-----------Prepreflop-------
         env.reset()
         env.set_dealer(True)
-        action = 7  #SB 
-        env.step(action)
-        action = 0  #FOLD 
-        env.step(action)
+        env.set_player_num(1)
+        env.step(7) #Player1 makes a SB to start 
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(8) #Player2 makes a BB 
+
+        #-----------Preflop---------
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(3) #Player1 raises by half pot (+£7.5)
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(0) #Player2 folds
+
         assert_that(env.terminated, equal_to(True))
 
     def test_small_blind_success(self):
@@ -35,28 +48,67 @@ class TestHUNLenv_actions(unittest.TestCase):
         assert_that(env.pot, equal_to(0))
 
     def test_preflop_check(self):
+        #-----------Prepreflop-------
         env.reset()
-        env.set_dealer(True) #Dealer goes first
-        env.step(7) #Make a SB to start 
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(7) #Player1 makes a SB to start 
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(8) #Player2 makes a BB 
+
+        env.set_dealer(True)
+        env.set_player_num(1)
         for i in range(5):
             env.step(1) #CHECK action
+        
         assert_that(env.stage, equal_to(1)) #Test that a check will remain in the preflop stage 
     
     def test_preflop_bet_ALL_IN(self):
         env.reset()
-        env.set_dealer(True) #Dealer goes first
-        env.step(7) #Make a SB to start 
-        env.step(6) #All in bet
+        #-----------Prepreflop-------
+        env.reset()
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(7) #Player1 makes a SB to start 
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(8) #Player2 makes a BB 
+
+        #-----------Preflop---------
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(6) #Player1 raises by half pot (+£7.5)
+
         assert_that(env.money_player_1, equal_to(0))
 
     def test_preflop_bet_RAISE_2POT(self):
         env.reset()
-        env.set_dealer(True) #Dealer goes first
-        env.step(7) #Make a SB to start 
+
+        #-----------Prepreflop-------
+        env.reset()
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(7) #Player1 makes a SB to start 
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(8) #Player2 makes a BB 
         pot_before = env.pot
-        env.step(3) #Raise half pot
+
+        #-----------Preflop---------
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(3) #Player1 raises by half pot (+£7.5)
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(2) #Player2 calls
+
         pot_after = env.pot
-        predicted_pot = pot_before * 1.5
+        predicted_pot = pot_before * 2
         assert_that(pot_after, equal_to(predicted_pot))
 
 
