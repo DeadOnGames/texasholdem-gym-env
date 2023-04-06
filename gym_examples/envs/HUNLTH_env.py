@@ -114,10 +114,18 @@ class HUNLTH_env(gym.Env):
     # Execute one time step within the environment
     self._take_action(self.player_num, action)
 
-    if(self.stage_complete and self.p2_stage_complete):
+    if(self.stage_complete and self.p2_stage_complete): #Both players must finish before progressing to the next stage
+
+      #Add money from previous betting round to the pot
+      self.pot += (self.bet_amount + self.p2_bet_amount)
+      #Reset bet amounts back to zero 
+      self.bet_amount = 0
+      self.p2_bet_amount = 0
+
       self.stage += 1
       self.stage_complete = False
       self.p2_stage_complete = False
+
       if(self.stage == 5):
         self.showdown()
 
@@ -145,7 +153,8 @@ class HUNLTH_env(gym.Env):
       if self.dealer:
         if(action == 7):  #SB
           self.money_player_1 -= 5
-          self.pot += 5
+          #self.pot += 5
+          self.bet(5)
           self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
@@ -153,7 +162,8 @@ class HUNLTH_env(gym.Env):
       else: # Non-dealer posts BB
         if(action == 8):  #BB
           self.money_player_1 -= 10
-          self.pot += 10
+          #self.pot += 10
+          self.bet(10)
           self.set_stage_complete(player_num, True)
         else:
           self.illegal_move()
@@ -248,17 +258,19 @@ class HUNLTH_env(gym.Env):
     self.player_num = no
 
   def set_stage_complete(self, player_num, bool):
-    if(self.acc_bet_amount == self.p2_acc_bet_amount):  #Checks to make sure both players ahve bet the same amount of money
+    if((self.stage == 0) or (self.bet_amount == self.p2_bet_amount)):  #Checks to make sure both players ahve bet the same amount of money
       if(player_num == 1):
         self.stage_complete = bool
-      else:
+      elif(player_num == 2):
         self.p2_stage_complete = bool
+    else:
+      print("ERROR: Setting stage complete failed")
 
   def bet_handler(self, action):  #Called if action 2,3,4,5 or 6 are used
     if(action == 2): #Call
       if(self.player_num == 1):
         self.bet(self.p2_bet_amount)
-      else: #Player_num == 2
+      elif(self.player_num == 2): #Player_num == 2
         self.bet(self.bet_amount)
     elif(action == 3): #RAISE_HALF_POT
       self.bet(self.pot * 0.5)
@@ -272,17 +284,15 @@ class HUNLTH_env(gym.Env):
   def bet(self, amount):
     #Record money being bet (in case of calls)
     if(self.player_num == 1):
+      #Remove money from player currently betting
+      self.money_player_1 -= amount
       self.bet_amount = amount
       self.acc_bet_amount += amount
-    else:
+    elif(self.player_num == 2):
+      #Remove money from player currently betting
+      self.money_player_2 -= amount
       self.p2_bet_amount = amount
       self.p2_acc_bet_amount += amount
-
-    #Add money to pot
-    self.pot += amount
-
-    #Remove money from player currently betting
-    self.money_player_1 -= amount
 
   def game_over(self):
     self.terminated = True

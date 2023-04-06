@@ -64,15 +64,18 @@ class TestHUNLenv_two_players(unittest.TestCase):
         env.set_player_num(2)
         env.step(8) #Player2 makes a BB 
 
+        assert_that(env.pot, equal_to(15)) 
         pot_before = env.pot    #£15
 
         env.set_dealer(True)
         env.set_player_num(1)
         env.step(3) #Player1 raises by half pot (+£7.5)
+        assert_that(env.bet_amount, equal_to(7.5)) 
 
         env.set_dealer(False)
         env.set_player_num(2)
         env.step(2) #Player2 calls
+        assert_that(env.p2_bet_amount, equal_to(7.5)) 
 
         pot_after = env.pot
         assert_that(pot_after, equal_to(pot_before * 2))     #Pot should have been raised by 100%
@@ -113,7 +116,7 @@ class TestHUNLenv_two_players(unittest.TestCase):
     
     def test_two_player_win_by_showdown(self):
 
-        #-----------Prepreflop-------
+        #-----------Prepreflop-------0
         
         env.reset()
         #env.render()
@@ -125,7 +128,7 @@ class TestHUNLenv_two_players(unittest.TestCase):
         env.set_player_num(2)
         env.step(8) #Player2 makes a BB 
 
-        #-----------Preflop---------
+        #-----------Preflop---------1
         #env.render()
         env.set_dealer(True)
         env.set_player_num(1)
@@ -135,7 +138,7 @@ class TestHUNLenv_two_players(unittest.TestCase):
         env.set_player_num(2)
         env.step(2) #Player2 calls
     
-        #-----------Flop-------------
+        #-----------Flop-------------2
         #env.render()
         env.set_dealer(True)
         env.set_player_num(1)
@@ -145,7 +148,7 @@ class TestHUNLenv_two_players(unittest.TestCase):
         env.set_player_num(2)
         env.step(3) #Player2 raises by half pot
 
-        #-----------Turn-------------
+        #-----------Turn-------------3
         #env.render()
         env.set_dealer(True)
         env.set_player_num(1)
@@ -154,9 +157,8 @@ class TestHUNLenv_two_players(unittest.TestCase):
         env.set_dealer(False)
         env.set_player_num(2)
         env.step(3) #Player2 raises by half pot 
-
+        #assert_that(env.bet_amount, equal_to(5))
         #-----------River-------------
-        #env.render()
         env.set_dealer(True)
         env.set_player_num(1)
         env.step(3) #Player1 raises by half pot

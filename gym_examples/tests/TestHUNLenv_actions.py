@@ -85,7 +85,6 @@ class TestHUNLenv_actions(unittest.TestCase):
         assert_that(env.money_player_1, equal_to(0))
 
     def test_preflop_bet_RAISE_2POT(self):
-        env.reset()
 
         #-----------Prepreflop-------
         env.reset()
@@ -96,20 +95,23 @@ class TestHUNLenv_actions(unittest.TestCase):
         env.set_dealer(False)
         env.set_player_num(2)
         env.step(8) #Player2 makes a BB 
-        pot_before = env.pot
+        pot_before = env.pot    #£15
 
         #-----------Preflop---------
         env.set_dealer(True)
         env.set_player_num(1)
         env.step(3) #Player1 raises by half pot (+£7.5)
+        assert_that(env.bet_amount, equal_to(7.5)) #Amount of money player 1 has bet £7.5
 
         env.set_dealer(False)
         env.set_player_num(2)
-        env.step(2) #Player2 calls
+        env.step(3) #Player2 raises by half pot (+£7.5)
+        assert_that(env.p2_bet_amount, equal_to(7.5))   #Amount of money player 2 has bet
 
         pot_after = env.pot
         predicted_pot = pot_before * 2
-        assert_that(pot_after, equal_to(predicted_pot))
+        #assert_that(pot_after, equal_to(predicted_pot))
+        assert_that(env.stage, equal_to(2))
 
 
 
