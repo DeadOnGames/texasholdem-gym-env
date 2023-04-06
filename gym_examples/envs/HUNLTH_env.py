@@ -61,7 +61,6 @@ class HUNLTH_env(gym.Env):
     self.collected_reward_player_1 = 0
     self.dealer = True
     self.terminated = False
-    self.big_blind = 0
     self.stage_complete = False
     self.p2_stage_complete = False
     self.reward = 0
@@ -129,7 +128,7 @@ class HUNLTH_env(gym.Env):
 
   def check_reward(self):
     if(self.terminated and self.won): # pot if game won
-      reward = self.pot                 
+      reward = self.pot #- self.acc_bet_amount                
     elif(self.terminated and not self.won):  # - money_player_1 if game lost
       reward = -1 * self.acc_bet_amount
     else:  # 0 if game still going
@@ -249,10 +248,11 @@ class HUNLTH_env(gym.Env):
     self.player_num = no
 
   def set_stage_complete(self, player_num, bool):
-    if(player_num == 1):
-      self.stage_complete = bool
-    else:
-      self.p2_stage_complete = bool
+    if(self.acc_bet_amount == self.p2_acc_bet_amount):  #Checks to make sure both players ahve bet the same amount of money
+      if(player_num == 1):
+        self.stage_complete = bool
+      else:
+        self.p2_stage_complete = bool
 
   def bet_handler(self, action):  #Called if action 2,3,4,5 or 6 are used
     if(action == 2): #Call

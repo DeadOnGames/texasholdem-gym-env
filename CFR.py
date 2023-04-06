@@ -5,44 +5,36 @@ import numpy as np
 from datetime import datetime
 
 class CFR:  
-    def __init__(self, game, num_iterations):
-        NUM_ACTIONS = self.get_num_actions(game)
-        self.game = game
-        #Initialise all regret values to zero
-        self.regret_sum = np.zeros(NUM_ACTIONS)
-        self.strategy = np.zeros(NUM_ACTIONS)
-        self.strategy_sum = np.zeros(NUM_ACTIONS)
+    def __init__(self, env, num_iterations):
+        self.NUM_ACTIONS = self.get_num_actions()
+        self.env = env
+
+        #Initialise all values to zero
+        self.regret_sum = np.zeros(self.NUM_ACTIONS)
+        self.strategy = np.zeros(self.NUM_ACTIONS)
+        self.strategy_sum = np.zeros(self.NUM_ACTIONS)
         self.num_iterations = num_iterations
+        self.util = {}
 
-    def get_strategy(self, realisation_weight):
-        actions = self.get_available_actions()
-        normalizingSum = 0
-        for a in actions:
-            self.strategy[a] = self.regret_sum[a] if self.regret_sum[a] > 0 else 0
-            normalizingSum += self.strategy[a]
-
-        for a in actions:
-            if normalizingSum > 0:
-                self.strategy[a] /= normalizingSum
+    def get_strategy(self, state, p0, num_actions):
+        if state in self.strategy:
+            strategy = self.strategy[state]
+            return strategy
+        elif state in self.regrets:
+            regrets = self.regrets[state]
+            normalizing_sum = sum([r if r > 0 else 0 for r in regrets])
+            if normalizing_sum > 0:
+                strategy = np.array([r/normalizing_sum for r in regrets])
+                self.strategy[state] = strategy
+                return strategy
             else:
-                self.strategy[a] = 1.0 / NUM_ACTIONS
-            self.strategy_sum[a] += realisation_weight * self.strategy[a]
-        return self.strategy
-    
-    def get_average_strategy(self, state, regrets):
-        if regrets is None:
-            return np.ones(len(self.game.actions(state))) / len(self.game.actions(state))
+                strategy = np.ones(num_actions) / num_actions
+                self.strategy[state] = strategy
+                return strategy
         else:
-            avgStrategy = np.zeros(NUM_ACTIONS)
-            normalizingSum = 0
-            for a in range(NUM_ACTIONS):
-                normalizingSum += self.strategy_sum[a]
-            for a in range(NUM_ACTIONS):
-                if (normalizingSum > 0):
-                    avgStrategy[a] = round(self.strategy_sum[a] / normalizingSum, 2)
-                else:
-                    avgStrategy[a] = round(1.0 / NUM_ACTIONS)
-            return avgStrategy
+            strategy = np.ones(num_actions) / num_actions
+            self.strategy[state] = strategy
+            return strategy
 
     def __str__(self):
         return self.infoSet + ": " + str(self.get_average_strategy())  # + "; regret = " + str(self.regret_sum)
@@ -52,7 +44,7 @@ class CFR:
         startTime = datetime.now()
         #Call CFR method for each iteration
         for i in range(self.num_iterations):
-                self.CFR(self.game.initial_state(), 1, 1)
+                self.cfr(self.env.initial_state(), 1, 1)
         endTime = datetime.now()
 
     def get_available_actions(self, env):
@@ -61,53 +53,74 @@ class CFR:
             actions.append(e.value)
         return actions
     
-    def get_num_actions(self, env):
-        #count = 0
-        #for e in env.action_space:
-        #    count += 1
-        #return count
-
+    def get_num_actions(self):
         #Hardcoded for time
         return 9
 
 
     # Counterfactual regret minimization iteration
-    def CFR(self, state, p0, p1):
+    def cfr(self, state, p0, p1):
         # Return payoff for terminal states
-        if self.game.terminated(state):
-                return self.game.utility(state)
-        player = self.game.player(state)
-
-        player = self.game.player(state)
-        if player == 1:
-            #Update the player's strategy for each information set based on the regret values.
-            strategy = self.get_strategy(state, self.regrets.get(state))
-            action = np.random.choice(self.game.actions(state), p=strategy)
-            next_state, reward = self.game.step(state, action)
-            v = self.cfr(next_state, p0 * strategy[action], p1)
-            
-            for a in self.game.actions(state):
-                if a == action:
-                    self.regrets[state][a] += p1 * (v - reward) * strategy[a]
-                else:
-                    self.regrets[state][a] += p1 * v * strategy[a]
-                    
-            return v
+        if self.is_terminal(state):
+                return self.get_utility(state, 0) #Player 0
         
-        if player == 2:
-            #Update the player's strategy for each information set based on the regret values.
-            strategy = self.get_strategy(state, self.regrets.get(state))
-            action = np.random.choice(self.game.actions(state), p=strategy)
-            next_state, reward = self.game.step(state, action)
-            v = self.cfr(next_state, p0, p1 * strategy[action])
+        #For each action, recursively call CFR with probabilities
+
+        if env.player_num == 1:
+            return self.cfr_chance(state, p0, p1)
+        elif player == 2:
+            return self.cfr_player(state, p0, p1)
+
+    def cfr_chance(self, state, p0, p1):
+        actions = self.get_actions(state)
+        num_actions = self.get_num_actions()
+        strategy = self.get_strategy(state, p0, num_actions)
+        util = np.zeros(num_actions)
+        node_util = 0
+
+        for i in range(num_actions):
+            next_state = self.get_next_state(state, actions[i])
+            util[i] = self.cfr(next_state, p0 * strategy[i], p1)
+            node_util += strategy[i] * util[i]
             
-            for a in self.game.actions(state):
-                if a == action:
-                    self.regrets[state][a] += p0 * (v - reward) * strategy[a]
-                else:
-                    self.regrets[state][a] += p0 * v * strategy[a]
-                    
-            return v
+        for i in range(num_actions):
+            regret = util[i] - node_util
+            if state in self.regrets:
+                self.regrets[state][i] += p1 * regret
+            else:
+                self.regrets[state] = np.zeros(num_actions)
+                self.regrets[state][i] += p1 * regret
+                
+        return node_util
+
+    def cfr_player(self, state, p0, p1):
+        actions = self.get_actions(state)
+        num_actions = len(actions)
+        strategy = self.get_strategy(state, p0, num_actions)
+        util = np.zeros(num_actions)
+        
+        for i in range(num_actions):
+            next_state = self.get_next_state(state, actions[i])
+            util[i] = self.cfr(next_state, p0, p1 * strategy[i])
+            
+        node_util = np.dot(strategy, util)
+        for i in range(num_actions):
+            regret = util[i] - node_util
+            if state in self.regrets:
+                self.regrets[state][i] += p1 * regret
+            else:
+                self.regrets[state] = np.zeros(num_actions)
+                self.regrets[state][i] += p1 * regret
+                
+        return node_util
+
+    def get_utility(self, state, player):
+        if state in self.util:  
+            return self.util[state][player]
+        elif self.is_terminal(state):
+            if self.get_winner(state) == player:
+                return self
+
 
 class texas_holdem:
     def __init__(self):
@@ -122,11 +135,8 @@ class texas_holdem:
         iterations = 5
         print("iterations =", iterations)
         cfr1 = CFR(env, iterations)    #Create an insatnce of CFR - player 1
-        cfr2 = CFR(env, iterations)    #Create an insatnce of CFR - player 2
 
-        relisation_weight = 0
-        cfr1.get_strategy(realisation_weight)
-        #train(iterations)
+        cfr1.train(iterations)
 
         env.set_dealer(True)
         env.step(7) #Make SB in prepreflop
