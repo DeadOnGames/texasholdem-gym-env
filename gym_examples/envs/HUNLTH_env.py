@@ -115,19 +115,24 @@ class HUNLTH_env(gym.Env):
     self._take_action(self.player_num, action)
 
     if(self.stage_complete and self.p2_stage_complete): #Both players must finish before progressing to the next stage
+      if((self.stage == 0) or (self.bet_amount == self.p2_bet_amount)):
+        #Add money from previous betting round to the pot
+        self.pot += (self.bet_amount + self.p2_bet_amount)
+        #Reset bet amounts back to zero 
+        self.bet_amount = 0
+        self.p2_bet_amount = 0
 
-      #Add money from previous betting round to the pot
-      self.pot += (self.bet_amount + self.p2_bet_amount)
-      #Reset bet amounts back to zero 
-      self.bet_amount = 0
-      self.p2_bet_amount = 0
+        self.stage_complete = False
+        self.p2_stage_complete = False
+        self.stage += 1
 
-      self.stage += 1
-      self.stage_complete = False
-      self.p2_stage_complete = False
+        if(self.stage == 5):
+          self.showdown()
 
-      if(self.stage == 5):
-        self.showdown()
+      else:
+        print("ERROR: Bets are not equal, cannot progress to next stage")
+    else:
+      print("ERROR: At least one player has not made an actionable move")
 
     self.reward = self.check_reward()
     observation = self._get_obs
@@ -258,13 +263,13 @@ class HUNLTH_env(gym.Env):
     self.player_num = no
 
   def set_stage_complete(self, player_num, bool):
-    if((self.stage == 0) or (self.bet_amount == self.p2_bet_amount)):  #Checks to make sure both players ahve bet the same amount of money
-      if(player_num == 1):
-        self.stage_complete = bool
-      elif(player_num == 2):
-        self.p2_stage_complete = bool
-    else:
-      print("ERROR: Setting stage complete failed")
+    #if((self.stage == 0) or (self.bet_amount == self.p2_bet_amount)):  #Checks to make sure both players ahve bet the same amount of money
+    if(player_num == 1):
+      self.stage_complete = bool
+    elif(player_num == 2):
+      self.p2_stage_complete = bool
+    #else:
+    #  print("ERROR: Setting stage complete failed")
 
   def bet_handler(self, action):  #Called if action 2,3,4,5 or 6 are used
     if(action == 2): #Call

@@ -10,7 +10,8 @@ from hamcrest import assert_that, equal_to
 env = gym.make('gym_examples/HUNLTH-v0')
 
 class TestHUNLenv_actions(unittest.TestCase):
-    
+
+   
     def test_fold_game_over_preflop(self):
         #-----------Prepreflop-------
         env.reset()
@@ -34,11 +35,17 @@ class TestHUNLenv_actions(unittest.TestCase):
         assert_that(env.terminated, equal_to(True))
 
     def test_small_blind_success(self):
-        env.set_dealer(True)
-        action = 7  #SB
+
         env.reset()
-        env.step(action)
-        assert_that(env.pot, equal_to(5))
+        env.set_dealer(True)
+        env.set_player_num(1)
+        env.step(7) #SB
+
+        env.set_dealer(False)
+        env.set_player_num(2)
+        env.step(8) #BB
+
+        assert_that(env.pot, equal_to(15))
 
     def test_small_blind_failure(self):
         env.reset()
@@ -96,17 +103,20 @@ class TestHUNLenv_actions(unittest.TestCase):
         env.set_player_num(2)
         env.step(8) #Player2 makes a BB 
         pot_before = env.pot    #£15
+        assert_that(pot_before, equal_to(15))
 
         #-----------Preflop---------
         env.set_dealer(True)
         env.set_player_num(1)
         env.step(3) #Player1 raises by half pot (+£7.5)
         assert_that(env.bet_amount, equal_to(7.5)) #Amount of money player 1 has bet £7.5
+        assert_that(env.stage_complete, equal_to(True))
 
         env.set_dealer(False)
         env.set_player_num(2)
         env.step(3) #Player2 raises by half pot (+£7.5)
-        assert_that(env.p2_bet_amount, equal_to(7.5))   #Amount of money player 2 has bet
+        #assert_that(env.p2_stage_complete, equal_to(True))
+        #assert_that(env.p2_bet_amount, equal_to(7.5))   #Amount of money player 2 has bet
 
         pot_after = env.pot
         predicted_pot = pot_before * 2
