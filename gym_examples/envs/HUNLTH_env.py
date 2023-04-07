@@ -129,10 +129,10 @@ class HUNLTH_env(gym.Env):
         if(self.stage == 5):
           self.showdown()
 
-      else:
-        print("ERROR: Bets are not equal, cannot progress to next stage")
-    else:
-      print("ERROR: At least one player has not made an actionable move")
+      #else:
+        #print("ERROR: Bets are not equal, cannot progress to next stage")
+    #else:
+      #print("ERROR: At least one player has not made an actionable move")
 
     self.reward = self.check_reward()
     observation = self._get_obs
@@ -157,7 +157,7 @@ class HUNLTH_env(gym.Env):
       #Check dealer status
       if self.dealer:
         if(action == 7):  #SB
-          self.money_player_1 -= 5
+          #self.money_player_1 -= 5
           #self.pot += 5
           self.bet(5)
           self.set_stage_complete(player_num, True)
@@ -166,7 +166,7 @@ class HUNLTH_env(gym.Env):
           self.set_stage_complete(player_num, False)
       else: # Non-dealer posts BB
         if(action == 8):  #BB
-          self.money_player_1 -= 10
+          #self.money_player_1 -= 10
           #self.pot += 10
           self.bet(10)
           self.set_stage_complete(player_num, True)
@@ -503,10 +503,28 @@ class HUNLTH_env(gym.Env):
     self.dealer = bool
 
   def render(self):
-    print("\n   " + clubs +" "+ hearts +" "+ diamonds +" "+ spades +" POKERBOT "+ clubs +" "+ hearts +" "+ diamonds +" "+ spades)
-    print("┌───────────────────────────┐")
-    print("| Stage: " + stage_enum(self.stage).name + " Pot: £" + str(self.pot) + " |")
-    print("└───────────────────────────┘")
+    lines = [[] for i in range(7)]
+    if(len(str(self.pot)) > 1):
+      space = ''
+    else:
+      space = ' '
+    
+    lines[0].append("\n                       " + clubs +" "+ hearts +" "+ diamonds +" "+ spades +" POKERBOT "+ clubs +" "+ hearts +" "+ diamonds +" "+ spades)
+    lines[1].append("                    ┌──────────────────────────────────────┐")
+    lines[2].append('                        Stage: ' + stage_enum(self.stage).name + '   Pot: £ {}{}              '.format(str(self.pot), space))
+    lines[3].append("                    └──────────────────────────────────────┘")
+    lines[4].append("┌──────────────────────────────────────┐ ┌──────────────────────────────────────┐")
+    lines[5].append('  Player 1 wealth: £ ' + str(self.money_player_1) + '                   Player 2 wealth: £ ' + str(self.money_player_2) + '  ')
+    lines[6].append("└──────────────────────────────────────┘ └──────────────────────────────────────┘")
+
+    
+    result = []
+    for index, line in enumerate(lines):
+        result.append(''.join(lines[index]))
+
+    for i in result:
+      print(i)
+
     if(self.terminated):
       if(self.won):
         print("Player 1 wins!")
@@ -530,7 +548,7 @@ class HUNLTH_env(gym.Env):
   
   def card_render_formatter(self, card):
     suit, pip = card
-    lines = [[] for i in range(9)]
+    lines = [[] for i in range(7)]
 
     if(len(pip) > 1):
       space = ''
@@ -540,12 +558,10 @@ class HUNLTH_env(gym.Env):
     lines[0].append('┌─────────┐')
     lines[1].append('│{}{}       │'.format(pip, space))  # use two {} one for char, one for space or char
     lines[2].append('│         │')
-    lines[3].append('│         │')
-    lines[4].append('│    {}    │'.format(suit))
-    lines[5].append('│         │')
-    lines[6].append('│         │')
-    lines[7].append('│       {}{}│'.format(space, pip))
-    lines[8].append('└─────────┘')
+    lines[3].append('│    {}    │'.format(suit))
+    lines[4].append('│         │')
+    lines[5].append('│       {}{}│'.format(space, pip))
+    lines[6].append('└─────────┘')
 
     result = []
     for index, line in enumerate(lines):
