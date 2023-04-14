@@ -70,7 +70,8 @@ class HUNLTH_env(gym.Env):
     self.p2_bet_amount = 0  #Frequently updated current bet amount
     self.acc_bet_amount = 0 #Accumulative amount of money bet this game by player 1
     self.p2_acc_bet_amount = 0 #Accumulative amount of money bet this game by player 2
-
+    self.hand_type = None
+    self.p2_hand_type = None
     # Define action space
     self.action_space = spaces.Discrete(len(actions))
 
@@ -106,6 +107,8 @@ class HUNLTH_env(gym.Env):
     self.reward = 0
     self.won = False
     self.terminated = False
+    self.hand_type = None
+    self.p2_hand_type = None
     observation = self._get_obs()
 
     return observation
@@ -113,6 +116,7 @@ class HUNLTH_env(gym.Env):
   def step(self, action):
     # Execute one time step within the environment
     self._take_action(self.player_num, action)
+    self.render_actions(action) #Render the action before its reset
 
     if(self.stage_complete and self.p2_stage_complete): #Both players must finish before progressing to the next stage
       if((self.stage == 0) or (self.bet_amount == self.p2_bet_amount)):
@@ -128,11 +132,6 @@ class HUNLTH_env(gym.Env):
 
         if(self.stage == 5):
           self.showdown()
-
-      #else:
-        #print("ERROR: Bets are not equal, cannot progress to next stage")
-    #else:
-      #print("ERROR: At least one player has not made an actionable move")
 
     self.reward = self.check_reward()
     observation = self._get_obs
@@ -236,10 +235,10 @@ class HUNLTH_env(gym.Env):
   def showdown(self): #----------------SHOWDOWN----------------------------------------------------------------
     self.terminated = True
     # Check cards 
-    hand_type, hand_sc = self.hand_ranking_score(self.hand_state, self.community_cardsState)
-    p2_hand_type, p2_hand_sc = self.hand_ranking_score(self.p2_hand_state, self.community_cardsState)
+    self.hand_type, hand_sc = self.hand_ranking_score(self.hand_state, self.community_cardsState)
+    self.p2_hand_type, p2_hand_sc = self.hand_ranking_score(self.p2_hand_state, self.community_cardsState)
 
-    if(hand_type == p2_hand_type):
+    if(self.hand_type == self.p2_hand_type):
       #Compare inter-hand ranking
       if(hand_sc > p2_hand_sc):
         self.won = True
@@ -247,8 +246,8 @@ class HUNLTH_env(gym.Env):
         self.won = False
     else:
       #Cards are not the same rank, work out who won
-      p1_score = self.rank_hand_types(hand_type)
-      p2_score = self.rank_hand_types(p2_hand_type)
+      p1_score = self.rank_hand_types(self.hand_type)
+      p2_score = self.rank_hand_types(self.p2_hand_type)
       if(p1_score > p2_score):
         self.won = True
       else:
@@ -280,7 +279,7 @@ class HUNLTH_env(gym.Env):
     elif(action == 3): #RAISE_HALF_POT
       self.bet(self.pot * 0.5)
     elif(action == 4):  #RAISE_POT
-      self.bet(self.pot * 2)
+      self.bet(self.pot)
     elif(action == 5):  #RAISE_2POT
       self.bet(self.pot * 2)
     elif(action == 6): #ALL_IN
@@ -464,8 +463,6 @@ class HUNLTH_env(gym.Env):
     
     return score
 
-
-
   def create_deck(self):
     for suit in SUITS:
         for pip in PIPS:
@@ -516,7 +513,6 @@ class HUNLTH_env(gym.Env):
     lines[4].append("┌──────────────────────────────────────┐ ┌──────────────────────────────────────┐")
     lines[5].append('  Player 1 wealth: £ ' + str(self.money_player_1) + '                   Player 2 wealth: £ ' + str(self.money_player_2) + '  ')
     lines[6].append("└──────────────────────────────────────┘ └──────────────────────────────────────┘")
-
     
     result = []
     for index, line in enumerate(lines):
@@ -526,12 +522,14 @@ class HUNLTH_env(gym.Env):
       print(i)
 
     if(self.terminated):
+      print("Player 1: " + str(self.hand_type))
+      print("Player 2: " + str(self.p2_hand_type))
       if(self.won):
         print("Player 1 wins!")
-        print("Reward = £")
-        print(self.reward)
+        print("Reward = £" + str(self.reward))
       else:
         print("player 2 wins")
+        print("Reward = £" + str(self.pot))
     else:
       if(self.community_cardsState != ([None] * 5)):
         print("Community cards:")
@@ -546,6 +544,12 @@ class HUNLTH_env(gym.Env):
         for i in self.p2_hand_state:
           self.card_render_formatter(i)
   
+  def render_actions(self, action):
+    if(self.player_num == 1):
+      print("Player 1 : " + str(actions(action).name) + " £" + str(self.bet_amount))
+    elif(self.player_num ==2):
+      print("Player 2 : " + str(actions(action).name) + " £" + str(self.p2_bet_amount))
+
   def card_render_formatter(self, card):
     suit, pip = card
     lines = [[] for i in range(7)]
