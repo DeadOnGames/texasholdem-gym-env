@@ -1,6 +1,6 @@
 from random import shuffle
-import numpy as np
 from datetime import datetime
+import numpy as np
 
 class Kuhn_cfr:
 

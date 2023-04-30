@@ -76,7 +76,8 @@ class HUNLTH_env(gym.Env):
     self.action_space = spaces.Discrete(len(actions))
 
     #Define observation space as a tuple - states are 'slots' not cards
-    self.observation_space = spaces.Discrete(10)
+    #self.observation_space = spaces.Discrete(10)
+    self.observation_space = spaces.Discrete(4) #Betting rounds
 
     assert render_mode is None or render_mode in self.metadata["render_modes"]
     self.render_mode = render_mode
@@ -86,7 +87,7 @@ class HUNLTH_env(gym.Env):
 
   def _get_obs(self):
     #Translates the environment's state into an observation
-    return self.hand_state, self.community_cardsState, self.money_player_1, self.money_player_2, self.pot
+    return {"hand": self.hand_state, "community": self.community_cardsState, "Player 1 wealth": self.money_player_1, "Player 2 wealth": self.money_player_2, "Pot": self.pot} #Maybe add stage to
   
   def __get_info(self):
     #Return some aribrariy info for debugging
@@ -183,6 +184,7 @@ class HUNLTH_env(gym.Env):
       #if(self.dealer == True):
         if(action == 0):  #FOLD
           self.game_over()
+          self.pot += (self.bet_amount + self.p2_bet_amount) #Add on the unmatched bet to the pot
           self.set_stage_complete(player_num, True)
         elif(action == 1):  #CHECK
           #Wait for opponent
@@ -195,12 +197,15 @@ class HUNLTH_env(gym.Env):
           self.illegal_move()
           self.set_stage_complete(player_num, False)
 
+        if(self.stage_complete and self.p2_stage_complete and (self.bet_amount == self.p2_bet_amount)):
+          self.community_cardsState = self.deal_cards(3)  #Deal 3 community cards
+
     elif self.stage == 2: #----------------FLOP----------------------------------------------------------------
-      self.community_cardsState = self.deal_cards(3)  #Deal 3 community cards
       #Second round of betting (bb goes first)
       #if(self.dealer == False):
       if(action == 0):  #FOLD
         self.game_over()
+        self.pot += (self.bet_amount + self.p2_bet_amount) #Add on the unmatched bet to the pot
         self.set_stage_complete(player_num, True)
       elif(action == 1):  #CHECK
         #Wait for opponent
@@ -213,13 +218,15 @@ class HUNLTH_env(gym.Env):
         self.illegal_move()
         self.set_stage_complete(player_num, False)
 
+      if(self.stage_complete and self.p2_stage_complete and (self.bet_amount == self.p2_bet_amount)):
+          self.community_cardsState += self.deal_cards(1)  #Deal 3 community cards
+
     elif self.stage == 3 or 4: #----------------TURN / RIVER ---------------------------------------------------------
-        #Deal 1 more community card
-      self.deal_cards(1)
       #Third round of betting (bb goes first)
       #if(self.dealer == False):
       if(action == 0):  #FOLD
         self.game_over()
+        self.pot += (self.bet_amount + self.p2_bet_amount) #Add on the unmatched bet to the pot
         self.set_stage_complete(player_num, True)
       elif(action == 1):  #CHECK
         #Wait for opponent
@@ -231,6 +238,9 @@ class HUNLTH_env(gym.Env):
       else:
         self.illegal_move()
         self.set_stage_complete(player_num, False)
+      
+      if(self.stage_complete and self.p2_stage_complete and (self.bet_amount == self.p2_bet_amount) and self.stage == 3):
+          self.community_cardsState += self.deal_cards(1)  #Deal 3 community cards
 
   def showdown(self): #----------------SHOWDOWN----------------------------------------------------------------
     self.terminated = True
@@ -283,16 +293,19 @@ class HUNLTH_env(gym.Env):
     elif(action == 5):  #RAISE_2POT
       self.bet(self.pot * 2)
     elif(action == 6): #ALL_IN
-      self.bet(self.money_player_1)
+      if(self.player_num == 1):
+        self.bet(self.money_player_1)
+      elif(self.player_num == 2):
+        self.bet(self.money_player_2)
 
   def bet(self, amount):
     #Record money being bet (in case of calls)
-    if(self.player_num == 1):
+    if(self.player_num == 1 and (self.money_player_1 - amount) >= 0):
       #Remove money from player currently betting
       self.money_player_1 -= amount
       self.bet_amount = amount
       self.acc_bet_amount += amount
-    elif(self.player_num == 2):
+    elif(self.player_num == 2 and (self.money_player_2 - amount) >= 0):
       #Remove money from player currently betting
       self.money_player_2 -= amount
       self.p2_bet_amount = amount
@@ -300,9 +313,10 @@ class HUNLTH_env(gym.Env):
 
   def game_over(self):
     self.terminated = True
+
     if(self.player_num == 2):
       self.won = True
-    else:
+    elif(self.player_num == 1):
       self.won = False
 
   def illegal_move(self):
@@ -522,8 +536,14 @@ class HUNLTH_env(gym.Env):
       print(i)
 
     if(self.terminated):
-      print("Player 1: " + str(self.hand_type))
-      print("Player 2: " + str(self.p2_hand_type))
+
+      if(self.p2_hand_state != ([None] * 2)):
+        print("Player 2 hand:")
+        for i in self.p2_hand_state:
+          self.card_render_formatter(i)
+
+      print("Player 1 hand: " + str(self.hand_type))
+      print("Player 2 hand: " + str(self.p2_hand_type))
       if(self.won):
         print("Player 1 wins!")
         print("Reward = £" + str(self.reward))
@@ -539,10 +559,7 @@ class HUNLTH_env(gym.Env):
         print("Player 1 hand:")
         for i in self.hand_state:
           self.card_render_formatter(i)
-      if(self.p2_hand_state != ([None] * 2)):
-        print("Player 2 hand:")
-        for i in self.p2_hand_state:
-          self.card_render_formatter(i)
+
   
   def render_actions(self, action):
     if(self.player_num == 1):
